@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { db } from '../db';
 import { Pattern, Bead, BeadUsage } from '../types';
-import { Plus, X, Trash2, Image as ImageIcon, Search, ArrowRight, CheckSquare } from 'lucide-react';
+import { Plus, X, Trash2, Image as ImageIcon, Search, ArrowRight, CheckSquare, FileText, Wand2 } from 'lucide-react';
 import { PRESET_COLORS } from '../utils';
 import './PatternManager.css';
 
@@ -18,6 +18,8 @@ export default function PatternManager({ patterns, beads }: Props) {
   const [beadUsageInput, setBeadUsageInput] = useState<BeadUsage[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState<'planned' | 'completed'>('planned');
+  const [showTextParser, setShowTextParser] = useState(false);
+  const [textInput, setTextInput] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -112,6 +114,8 @@ export default function PatternManager({ patterns, beads }: Props) {
   // 打开分析模态框
   const openAnalysisModal = (pattern: Pattern) => {
     setAnalyzingPattern(pattern);
+    setShowTextParser(false);
+    setTextInput('');
     // 初始化豆子使用记录
     if (pattern.beadsUsed && pattern.beadsUsed.length > 0) {
       setBeadUsageInput(pattern.beadsUsed);
@@ -133,9 +137,16 @@ export default function PatternManager({ patterns, beads }: Props) {
     
     // 如果更新的是色号，自动填充颜色名称
     if (field === 'colorCode' && typeof value === 'string') {
-      const preset = PRESET_COLORS.find(c => c.colorCode === value);
-      if (preset) {
-        updated[index].colorName = preset.colorName;
+      // 先从豆子库找
+      const bead = beads.find(b => b.colorCode === value);
+      if (bead) {
+        updated[index].colorName = bead.colorName;
+      } else {
+        // 再从预设色号库找
+        const preset = PRESET_COLORS.find(c => c.colorCode === value);
+        if (preset) {
+          updated[index].colorName = preset.colorName;
+        }
       }
     }
     
@@ -145,6 +156,78 @@ export default function PatternManager({ patterns, beads }: Props) {
   // 删除豆子使用记录行
   const removeBeadUsageRow = (index: number) => {
     setBeadUsageInput(beadUsageInput.filter((_, i) => i !== index));
+  };
+
+  // 解析文字描述
+  const parseTextDescription = () => {
+    if (!textInput.trim()) {
+      alert('请输入文字描述');
+      return;
+    }
+
+    // 解析规则：
+    // 支持格式：
+    // - F7（黑色）：52 个
+    // - F7 黑色 52
+    // - F7 52
+    // - F7：52个
+    
+    const lines = textInput.split('\n');
+    const parsed: BeadUsage[] = [];
+    
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      
+      // 尝试多种模式匹配
+      // 模式1: F7（黑色）：52 个
+      let match = line.match(/([A-Z]\d+)[（(](.+?)[)）][：:]\s*(\d+)/i);
+      if (match) {
+        parsed.push({
+          colorCode: match[1].toUpperCase(),
+          colorName: match[2].trim(),
+          quantity: parseInt(match[3])
+        });
+        continue;
+      }
+      
+      // 模式2: F7：52 或 F7: 52个
+      match = line.match(/([A-Z]\d+)[：:]\s*(\d+)/i);
+      if (match) {
+        const colorCode = match[1].toUpperCase();
+        const bead = beads.find(b => b.colorCode === colorCode);
+        const preset = PRESET_COLORS.find(c => c.colorCode === colorCode);
+        parsed.push({
+          colorCode: colorCode,
+          colorName: bead?.colorName || preset?.colorName || '',
+          quantity: parseInt(match[2])
+        });
+        continue;
+      }
+      
+      // 模式3: F7 黑色 52 或 F7 52
+      match = line.match(/([A-Z]\d+)\s+([^\d]+)?\s*(\d+)/i);
+      if (match) {
+        const colorCode = match[1].toUpperCase();
+        const bead = beads.find(b => b.colorCode === colorCode);
+        const preset = PRESET_COLORS.find(c => c.colorCode === colorCode);
+        parsed.push({
+          colorCode: colorCode,
+          colorName: match[2]?.trim() || bead?.colorName || preset?.colorName || '',
+          quantity: parseInt(match[3])
+        });
+        continue;
+      }
+    }
+    
+    if (parsed.length === 0) {
+      alert('未能解析出有效的色号信息\n\n支持格式：\n• F7（黑色）：52 个\n• F7：52\n• F7 黑色 52');
+      return;
+    }
+    
+    setBeadUsageInput(parsed);
+    setShowTextParser(false);
+    setTextInput('');
+    alert(`成功解析 ${parsed.length} 个色号！\n请检查并调整数据后保存。`);
   };
 
   // 保存分析结果并扣除库存
@@ -434,22 +517,65 @@ export default function PatternManager({ patterns, beads }: Props) {
                 📝 记录本图纸使用的豆子色号和数量，系统会自动从库存中扣除
               </p>
               
+              {/* 文字解析功能 */}
+              {!showTextParser ? (
+                <button 
+                  className="btn-text-parser"
+                  onClick={() => setShowTextParser(true)}
+                >
+                  <Wand2 size={16} />
+                  使用文字描述快速录入
+                </button>
+              ) : (
+                <div className="text-parser-section">
+                  <div className="parser-header">
+                    <FileText size={18} />
+                    <span>粘贴文字描述，自动解析用量</span>
+                    <button 
+                      className="btn-close-parser"
+                      onClick={() => {
+                        setShowTextParser(false);
+                        setTextInput('');
+                      }}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <textarea
+                    className="text-input-area"
+                    placeholder={'支持以下格式：\n• F7（黑色）：52 个\n• F7：52个\n• F7 黑色 52\n• F7 52\n\n每行一个色号，粘贴后点击"解析"按钮'}
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    rows={8}
+                  />
+                  <button 
+                    className="btn-parse"
+                    onClick={parseTextDescription}
+                  >
+                    <Wand2 size={16} />
+                    解析并填充
+                  </button>
+                </div>
+              )}
+              
               <div className="bead-usage-list">
                 {beadUsageInput.map((usage, index) => (
                   <div key={index} className="bead-usage-row">
-                    <input
-                      type="text"
-                      placeholder="色号 (如: A1)"
+                    <BeadCodeSelect
                       value={usage.colorCode}
-                      onChange={(e) => updateBeadUsage(index, 'colorCode', e.target.value)}
-                      className="input-code"
+                      beads={beads}
+                      onChange={(code, name) => {
+                        const updated = [...beadUsageInput];
+                        updated[index] = { ...updated[index], colorCode: code, colorName: name };
+                        setBeadUsageInput(updated);
+                      }}
                     />
                     <input
                       type="text"
-                      placeholder="颜色名称"
+                      placeholder="颜色名称（自动填充）"
                       value={usage.colorName}
-                      onChange={(e) => updateBeadUsage(index, 'colorName', e.target.value)}
-                      className="input-name"
+                      readOnly
+                      className="input-name-readonly"
                     />
                     <input
                       type="number"
@@ -495,6 +621,86 @@ export default function PatternManager({ patterns, beads }: Props) {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+// 色号选择组件（带搜索）
+function BeadCodeSelect({ 
+  value, 
+  beads, 
+  onChange 
+}: { 
+  value: string; 
+  beads: Bead[]; 
+  onChange: (code: string, name: string) => void;
+}) {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [search, setSearch] = useState('');
+  
+  const filteredBeads = beads.filter(b =>
+    search === '' ||
+    b.colorCode.toLowerCase().includes(search.toLowerCase()) ||
+    b.colorName.toLowerCase().includes(search.toLowerCase())
+  ).sort((a, b) => a.colorCode.localeCompare(b.colorCode));
+  
+  const handleSelect = (bead: Bead) => {
+    onChange(bead.colorCode, bead.colorName);
+    setShowDropdown(false);
+    setSearch('');
+  };
+  
+  return (
+    <div className="bead-code-select">
+      <input
+        type="text"
+        placeholder="色号"
+        value={value}
+        onChange={(e) => {
+          const code = e.target.value.toUpperCase();
+          const bead = beads.find(b => b.colorCode === code);
+          const preset = PRESET_COLORS.find(c => c.colorCode === code);
+          onChange(code, bead?.colorName || preset?.colorName || '');
+        }}
+        onFocus={() => setShowDropdown(true)}
+        className="input-code"
+      />
+      {showDropdown && (
+        <>
+          <div className="dropdown-backdrop" onClick={() => setShowDropdown(false)} />
+          <div className="bead-dropdown">
+            <div className="dropdown-search">
+              <Search size={14} />
+              <input
+                type="text"
+                placeholder="搜索色号..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+            <div className="dropdown-list">
+              {filteredBeads.length > 0 ? (
+                filteredBeads.map(bead => (
+                  <div
+                    key={bead.id}
+                    className="dropdown-item"
+                    onClick={() => handleSelect(bead)}
+                  >
+                    <span className="item-code">{bead.colorCode}</span>
+                    <span className="item-name">{bead.colorName}</span>
+                    <span className="item-qty">库存:{bead.quantity}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="dropdown-empty">
+                  {search ? '没有找到匹配的色号' : '豆子库为空，请先添加色号'}
+                </div>
+              )}
+            </div>
+          </div>
+        </>
       )}
     </div>
   );
