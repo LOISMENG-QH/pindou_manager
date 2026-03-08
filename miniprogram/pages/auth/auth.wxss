@@ -1,0 +1,110 @@
+/* pages/auth/auth.wxss */
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 48rpx;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 600rpx;
+  background: white;
+  border-radius: 32rpx;
+  padding: 64rpx 48rpx;
+  box-shadow: 0 20rpx 60rpx rgba(0,0,0,0.2);
+}
+
+.logo {
+  font-size: 96rpx;
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.app-name {
+  font-size: 56rpx;
+  font-weight: bold;
+  text-align: center;
+  color: #667eea;
+  margin-bottom: 16rpx;
+}
+
+.mode-title {
+  text-align: center;
+  color: #6b7280;
+  font-size: 28rpx;
+  margin-bottom: 64rpx;
+}
+
+.form {
+  margin-bottom: 48rpx;
+}
+
+.form-item {
+  margin-bottom: 32rpx;
+}
+
+.label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 16rpx;
+}
+
+.input {
+  width: 100%;
+  padding: 24rpx 32rpx;
+  border: 2rpx solid #e5e7eb;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  box-sizing: border-box;
+}
+
+.error {
+  background: #fee;
+  color: #c33;
+  padding: 24rpx 32rpx;
+  border-radius: 16rpx;
+  margin-bottom: 32rpx;
+  font-size: 28rpx;
+  border: 2rpx solid #fcc;
+}
+
+.submit-btn {
+  width: 100%;
+  padding: 28rpx;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 16rpx;
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.switch-mode {
+  text-align: center;
+  font-size: 28rpx;
+  color: #6b7280;
+}
+
+.link {
+  color: #667eea;
+  font-weight: 600;
+  margin-left: 8rpx;
+}
+
+.tip {
+  margin-top: 48rpx;
+  padding-top: 32rpx;
+  border-top: 2rpx solid #f3f4f6;
+  text-align: center;
+  font-size: 24rpx;
+  color: #9ca3af;
+  line-height: 1.6;
+}
+
+.tip view {
+  margin-bottom: 8rpx;
+}
