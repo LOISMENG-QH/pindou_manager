@@ -43,14 +43,26 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
   // 获取色号对应的颜色
   const getColorHex = (colorCode: string): string => {
     const preset = PRESET_COLORS.find(c => c.colorCode === colorCode);
-    return preset?.hex || '#e0e0e0';
+    // 如果找不到颜色，使用深灰色背景而不是浅灰色
+    return preset?.hex || '#6b7280';
   };
 
   // 计算文字颜色（基于背景亮度）
   const getTextColor = (hex: string): string => {
+    // 处理无效的hex值
+    if (!hex || hex.length < 7) {
+      return '#ffffff';
+    }
+    
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
+    
+    // 检查是否解析成功
+    if (isNaN(r) || isNaN(g) || isNaN(b)) {
+      return '#ffffff';
+    }
+    
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness > 128 ? '#000000' : '#ffffff';
   };
@@ -403,19 +415,26 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
                       const bgColor = getColorHex(bead.colorCode);
                       const textColor = getTextColor(bgColor);
                       const isLowStock = bead.quantity <= bead.alertThreshold;
+                      const isUnknownColor = !PRESET_COLORS.find(c => c.colorCode === bead.colorCode);
                       
                       return (
                         <div
                           key={bead.id}
-                          className={`bead-card ${isLowStock ? 'low-stock' : ''}`}
+                          className={`bead-card ${isLowStock ? 'low-stock' : ''} ${isUnknownColor ? 'unknown-color' : ''}`}
                           style={{
                             background: bgColor,
                             color: textColor
                           }}
+                          title={isUnknownColor ? `${bead.colorCode} - 未在色号库中找到颜色` : `${bead.colorCode} - ${bead.colorName}`}
                         >
                           {isLowStock && (
                             <div className="low-stock-badge">
                               <AlertTriangle size={14} />
+                            </div>
+                          )}
+                          {isUnknownColor && (
+                            <div className="unknown-color-badge" title="未知颜色">
+                              ?
                             </div>
                           )}
                           <div className="bead-header">
