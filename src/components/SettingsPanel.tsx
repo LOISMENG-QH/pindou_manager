@@ -205,8 +205,8 @@ export default function SettingsPanel() {
         <div className="settings-group">
           <div className="setting-item">
             <div className="setting-info">
-              <h4>添加常用色号</h4>
-              <p>包含 {PRESET_COLORS.length} 个常用 Hama 和 Perler 色号</p>
+              <h4>添加完整色号库</h4>
+              <p>包含 {PRESET_COLORS.length} 个色号（A-H, M系列）</p>
             </div>
             <button className="btn-primary" onClick={handleAddPresetColors}>
               <Download size={18} />
@@ -216,20 +216,36 @@ export default function SettingsPanel() {
         </div>
 
         <div className="preset-colors-preview">
-          {PRESET_COLORS.slice(0, 10).map((color, idx) => (
-            <div key={idx} className="color-chip">
-              <div className="chip-color" style={{ background: color.hex }} />
-              <div className="chip-info">
-                <div className="chip-code">{color.colorCode}</div>
-                <div className="chip-name">{color.colorName}</div>
+          <div className="series-info">
+            <p>✨ 完整色号库包含：</p>
+            <ul>
+              <li>A系列 (A1-A26)：26个黄橙粉暖色系</li>
+              <li>B系列 (B1-B32)：32个绿色系</li>
+              <li>C系列 (C1-C29)：29个蓝青色系</li>
+              <li>D系列 (D1-D26)：26个紫色系</li>
+              <li>E系列 (E1-E24)：24个粉红色系</li>
+              <li>F系列 (F1-F25)：25个红棕色系</li>
+              <li>G系列 (G1-G21)：21个棕褐色系</li>
+              <li>H系列 (H1-H23)：23个黑白灰系</li>
+              <li>M系列 (M1-M15)：15个特殊灰色系</li>
+            </ul>
+          </div>
+          <div className="preset-colors-grid">
+            {PRESET_COLORS.slice(0, 12).map((color, idx) => (
+              <div key={idx} className="color-chip">
+                <div className="chip-color" style={{ background: color.hex }} />
+                <div className="chip-info">
+                  <div className="chip-code">{color.colorCode}</div>
+                  <div className="chip-name">{color.colorName}</div>
+                </div>
               </div>
-            </div>
-          ))}
-          {PRESET_COLORS.length > 10 && (
-            <div className="color-chip more">
-              <div>还有 {PRESET_COLORS.length - 10} 个...</div>
-            </div>
-          )}
+            ))}
+            {PRESET_COLORS.length > 12 && (
+              <div className="color-chip more">
+                <div>还有 {PRESET_COLORS.length - 12} 个...</div>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 

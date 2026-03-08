@@ -152,13 +152,50 @@
 
 /* 预设色号预览 */
 .preset-colors-preview {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
   margin-top: 16px;
   padding: 16px;
   background: white;
   border-radius: 8px;
+}
+
+.series-info {
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid var(--color-primary);
+}
+
+.series-info p {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.series-info ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.series-info li {
+  font-size: 13px;
+  color: #666;
+  padding: 4px 0;
+  line-height: 1.6;
+}
+
+.series-info li::before {
+  content: "●";
+  color: var(--color-primary);
+  margin-right: 8px;
+}
+
+.preset-colors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
 }
 
 .color-chip {
