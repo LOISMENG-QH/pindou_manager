@@ -4,7 +4,7 @@
 
 ## ✨ 功能特点
 
-### 前端功能
+### 前端网页版（完整）
 - 🎨 **豆子管理**
   - 221 色 MARD 预设色号库
   - 按系列分组显示（A-H, M）
@@ -26,7 +26,33 @@
   - 本地 IndexedDB 存储
   - 数据导入/导出（JSON）
 
-### 后端 API（新）
+### 微信小程序版（完整）🆕
+- 📱 **用户系统**
+  - 邮箱登录注册
+  - JWT Token 认证
+  - 自动保持登录
+
+- 🎨 **豆子管理**
+  - 云端存储同步
+  - 搜索和筛选
+  - 快速数量调整（+/-1, +/-10）
+  - 低库存提醒
+  - 预设色号选择
+
+- 📐 **图纸管理**
+  - 拍照/相册上传
+  - 自动压缩和缩略图
+  - 想拼/已拼分类
+  - 图片预览
+  - 标记完成
+
+- ⚙️ **设置中心**
+  - 数据统计
+  - 云端同步
+  - API 健康检查
+  - 退出登录
+
+### 后端 API（完整）
 - 🔐 **用户系统**
   - 用户注册/登录
   - JWT 认证
@@ -49,6 +75,11 @@
 **前端网页版：**
 - 完整版：https://loismeng-qh.github.io/pindou_manager/
 - 单文件版：https://loismeng-qh.github.io/pindou_manager/pindou-manager-standalone.html
+
+**微信小程序：**
+- 📱 完整功能已开发完成
+- 🚀 配置指南：[MINIPROGRAM_GUIDE.md](./MINIPROGRAM_GUIDE.md)
+- 📖 开发文档：[miniprogram/README.md](./miniprogram/README.md)
 
 **后端 API：**
 - 地址：`http://你的服务器IP:3000`
@@ -207,14 +238,20 @@ Content-Type: application/json
 
 ## 🛠️ 技术栈
 
-### 前端
+### 前端网页版
 - React 18
 - TypeScript
 - Vite
 - IndexedDB (Dexie.js)
 - Lucide React (图标)
 
-### 后端
+### 微信小程序
+- 小程序原生框架
+- JavaScript ES6+
+- Promise 异步处理
+- Canvas API（图片处理）
+
+### 后端 API
 - Node.js 18
 - Express 4
 - TypeScript
@@ -226,30 +263,36 @@ Content-Type: application/json
 
 ### 部署
 - Docker & Docker Compose
-- GitHub Pages (前端)
+- GitHub Pages (前端网页)
 - 腾讯云/Railway (后端)
+- 微信小程序平台
 
 ## 📁 项目结构
 
 ```
 pindou_manager/
-├── src/                    # 前端源代码
+├── src/                    # 前端网页源代码
 │   ├── components/         # React 组件
 │   ├── db.ts              # IndexedDB 配置
-│   ├── types.ts           # TypeScript 类型
-│   ├── utils.ts           # 工具函数
-│   ├── theme.ts           # 主题配置
-│   └── api.ts             # API 客户端（新）
+│   ├── api.ts             # API 客户端
+│   └── ...
 ├── backend/               # 后端源代码
 │   ├── src/index.ts       # API 入口
 │   ├── prisma/schema.prisma  # 数据库模型
 │   ├── Dockerfile         # Docker 构建
 │   └── package.json
+├── miniprogram/           # 微信小程序（完整）
+│   ├── app.js             # 小程序入口
+│   ├── pages/             # 页面目录
+│   │   ├── auth/          # 登录注册
+│   │   ├── beads/         # 豆子管理
+│   │   ├── patterns/      # 图纸管理
+│   │   └── settings/      # 设置
+│   └── README.md          # 开发文档
 ├── deploy/                # 部署脚本和文档
 │   ├── setup-server.sh    # 自动部署脚本
 │   ├── DEPLOYMENT_GUIDE.md  # 部署指南
 │   └── RAILWAY_GUIDE.md   # Railway 部署指南
-├── miniprogram/           # 小程序版本（开发中）
 └── dist/                  # 构建输出
 ```
 
@@ -277,8 +320,9 @@ pindou_manager/
 - [x] 后端 API 服务
 - [x] Docker 容器化部署
 - [x] 腾讯云部署脚本
-- [ ] 前端连接云端 API
-- [ ] 小程序版本
+- [x] API 客户端封装
+- [x] 微信小程序（完整）✨
+- [ ] 网页版连接云端 API（可选）
 - [ ] 数据分析统计
 - [ ] 图片 AI 识别（可选）
 
@@ -304,7 +348,16 @@ LOISMENG-QH
 
 **更新日志**
 
-### 2026-03-09
+### 2026-03-09 晚
+- ✅ 微信小程序完整开发完成
+- ✅ 豆子管理页面（搜索、CRUD、快速调整）
+- ✅ 图纸管理页面（上传、压缩、想拼/已拼分类）
+- ✅ 设置页面（统计、同步、健康检查）
+- ✅ 完整的小程序使用指南
+- ✅ 所有页面下拉刷新
+- ✅ 图片处理（压缩、缩略图）
+
+### 2026-03-09 早
 - ✅ 添加完整后端 API 服务
 - ✅ Docker 容器化部署
 - ✅ 腾讯云一键部署脚本
