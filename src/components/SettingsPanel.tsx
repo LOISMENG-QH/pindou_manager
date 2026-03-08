@@ -9,6 +9,8 @@ export default function SettingsPanel() {
   const [importing, setImporting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showColorLibrary, setShowColorLibrary] = useState(false);
+  const [showBatchAddModal, setShowBatchAddModal] = useState(false);
+  const [batchQuantity, setBatchQuantity] = useState(100);
   const [selectedTheme, setSelectedTheme] = useState(() => {
     const saved = localStorage.getItem('theme');
     if (saved) {
@@ -82,29 +84,45 @@ export default function SettingsPanel() {
     showMessage('success', `已切换到${THEMES[themeKey].name}主题`);
   };
 
-  const handleAddPresetColors = async () => {
-    if (!confirm(`要添加 ${PRESET_COLORS.length} 个预设色号到你的豆子库吗？`)) {
+  // 批量添加色号
+  const handleBatchAdd = async () => {
+    if (batchQuantity < 0) {
+      alert('数量不能为负数');
       return;
     }
 
     try {
       let added = 0;
+      let updated = 0;
+      const globalThreshold = Number(localStorage.getItem('globalAlertThreshold') || 10);
+
       for (const preset of PRESET_COLORS) {
         // 检查是否已存在
         const existing = await db.beads.where('colorCode').equals(preset.colorCode).first();
-        if (!existing) {
+        
+        if (existing) {
+          // 已存在，增加库存
+          await db.beads.update(existing.id!, {
+            quantity: existing.quantity + batchQuantity,
+            updatedAt: new Date()
+          });
+          updated++;
+        } else {
+          // 不存在，添加新色号
           await db.beads.add({
             colorCode: preset.colorCode,
             colorName: preset.colorName,
-            quantity: 0,
-            alertThreshold: 10,
+            quantity: batchQuantity,
+            alertThreshold: globalThreshold,
             createdAt: new Date(),
             updatedAt: new Date()
           });
           added++;
         }
       }
-      showMessage('success', `成功添加 ${added} 个色号到豆子库`);
+
+      setShowBatchAddModal(false);
+      showMessage('success', `成功！新增 ${added} 个色号，更新 ${updated} 个色号的库存`);
     } catch (error) {
       showMessage('error', '添加失败：' + (error as Error).message);
     }
@@ -178,50 +196,59 @@ export default function SettingsPanel() {
       <section className="settings-section">
         <div className="section-header">
           <Palette size={20} />
-          <h3>MARD 221色</h3>
+          <h3>预设色号</h3>
         </div>
-        <p className="section-desc">完整的拼豆色号系统</p>
-        <p className="color-series-list">
-          A-H 和 M 系列 · 共221个色号
-        </p>
+        <p className="section-desc">快速导入常用的拼豆色号系统到你的豆子库</p>
         
-        <button 
-          className="btn-toggle-library"
-          onClick={() => setShowColorLibrary(!showColorLibrary)}
-        >
-          {showColorLibrary ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          {showColorLibrary ? '收起色号库' : '查看全部221色号'}
-        </button>
-
-        {showColorLibrary && (
-          <div className="color-library-full">
-            {Object.entries(colorsByGroup).map(([series, colors]) => (
-              <div key={series} className="color-series-group">
-                <h4 className="series-title">{seriesNames[series]} ({colors.length}色)</h4>
-                <div className="color-grid-full">
-                  {colors.map((color, idx) => (
-                    <div key={idx} className="color-item-full">
-                      <div 
-                        className="color-swatch-full" 
-                        style={{ background: color.hex }}
-                        title={`${color.colorCode} - ${color.colorName}`}
-                      />
-                      <div className="color-label">
-                        <span className="color-code-small">{color.colorCode}</span>
-                        <span className="color-name-small">{color.colorName}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+        {/* MARD 221色 */}
+        <div className="preset-color-system">
+          <div className="preset-header">
+            <h4>MARD 221色</h4>
+            <span className="preset-badge">推荐</span>
           </div>
-        )}
+          <p className="preset-desc">完整的拼豆色号系统 · A-H 和 M 系列 · 共221个色号</p>
+          
+          <button 
+            className="btn-toggle-library"
+            onClick={() => setShowColorLibrary(!showColorLibrary)}
+          >
+            {showColorLibrary ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            {showColorLibrary ? '收起色号库' : '查看全部221色号'}
+          </button>
 
-        <button className="btn-action" onClick={handleAddPresetColors}>
-          <Palette size={18} />
-          添加全部色号到豆子库
-        </button>
+          {showColorLibrary && (
+            <div className="color-library-full">
+              {Object.entries(colorsByGroup).map(([series, colors]) => (
+                <div key={series} className="color-series-group">
+                  <h4 className="series-title">{seriesNames[series]} ({colors.length}色)</h4>
+                  <div className="color-grid-full">
+                    {colors.map((color, idx) => (
+                      <div key={idx} className="color-item-full">
+                        <div 
+                          className="color-swatch-full" 
+                          style={{ background: color.hex }}
+                          title={`${color.colorCode} - ${color.colorName}`}
+                        />
+                        <div className="color-label">
+                          <span className="color-code-small">{color.colorCode}</span>
+                          <span className="color-name-small">{color.colorName}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <button 
+            className="btn-action btn-add-preset" 
+            onClick={() => setShowBatchAddModal(true)}
+          >
+            <Palette size={18} />
+            添加全部色号到豆子库
+          </button>
+        </div>
       </section>
 
       {/* 数据管理 */}
@@ -274,6 +301,57 @@ export default function SettingsPanel() {
           </p>
         </div>
       </section>
+
+      {/* 批量添加模态框 */}
+      {showBatchAddModal && (
+        <div className="modal-overlay" onClick={() => setShowBatchAddModal(false)}>
+          <div className="batch-add-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>批量添加色号</h3>
+              <button className="btn-close" onClick={() => setShowBatchAddModal(false)}>
+                ×
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <p className="batch-hint">
+                📦 将 MARD 221色全部添加到豆子库，您可以设置初始库存数量
+              </p>
+              
+              <div className="quantity-input-group">
+                <label>每个色号的初始数量：</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={batchQuantity}
+                  onChange={(e) => setBatchQuantity(Number(e.target.value))}
+                  className="quantity-input-large"
+                />
+                <span className="unit">颗</span>
+              </div>
+              
+              <div className="batch-info">
+                <p>✓ 如果色号已存在：增加库存数量</p>
+                <p>✓ 如果色号不存在：创建新色号</p>
+                <p>✓ 共计 {PRESET_COLORS.length} 个色号</p>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button className="btn-primary" onClick={handleBatchAdd}>
+                <Palette size={18} />
+                确认添加
+              </button>
+              <button 
+                className="btn-secondary" 
+                onClick={() => setShowBatchAddModal(false)}
+              >
+                取消
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
