@@ -1,0 +1,44 @@
+{
+  "pages": [
+    "pages/auth/auth",
+    "pages/beads/beads",
+    "pages/patterns/patterns",
+    "pages/settings/settings"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#3b82f6",
+    "navigationBarTitleText": "拼豆豆",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#f5f5f5"
+  },
+  "tabBar": {
+    "color": "#666",
+    "selectedColor": "#3b82f6",
+    "backgroundColor": "#fff",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/beads/beads",
+        "text": "豆子",
+        "iconPath": "images/bead.png",
+        "selectedIconPath": "images/bead-active.png"
+      },
+      {
+        "pagePath": "pages/patterns/patterns",
+        "text": "图纸",
+        "iconPath": "images/pattern.png",
+        "selectedIconPath": "images/pattern-active.png"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "设置",
+        "iconPath": "images/settings.png",
+        "selectedIconPath": "images/settings-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}
