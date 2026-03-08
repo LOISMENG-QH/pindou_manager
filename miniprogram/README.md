@@ -89,77 +89,62 @@ miniprogram/
 - [x] 登录注册页面
 - [x] Token 认证
 - [x] 全局样式
+- [x] 豆子管理页面（完整）
+- [x] 图纸管理页面（完整）
+- [x] 设置页面（完整）
+- [x] 下拉刷新
+- [x] 数据统计
 
-## 🔨 待开发功能
+## 🎉 功能完成度：100%
 
-### 豆子管理页 (pages/beads/)
+所有核心页面已开发完成！
 
-**功能需求：**
-- 显示豆子列表（从 API 获取）
-- 添加豆子
-- 编辑豆子数量
-- 删除豆子
-- 低库存提醒
-- 搜索和筛选
+### 豆子管理页 (pages/beads/) ✅ 已完成
 
-**API 调用示例：**
+**已实现功能：**
+- ✅ 豆子列表展示（从云端 API 加载）
+- ✅ 搜索豆子（按色号或名称）
+- ✅ 添加豆子（弹窗表单）
+- ✅ 编辑豆子信息
+- ✅ 删除豆子（带确认）
+- ✅ 快速调整数量（+1, +10, -1, -10）
+- ✅ 低库存提醒（红色边框 + 徽章）
+- ✅ 预设色号快捷选择（10 个常用色号）
+- ✅ 下拉刷新
 
-```javascript
-// 获取豆子列表
-const beads = await app.request('/api/beads');
+**代码文件：**
+- beads.js (220 行)
+- beads.wxml (150 行)
+- beads.wxss (120 行)
+- beads.json (配置)
 
-// 添加豆子
-await app.request('/api/beads', {
-  method: 'POST',
-  data: {
-    colorCode: 'A1',
-    colorName: '淡黄',
-    quantity: 100,
-    alertThreshold: 10
-  }
-});
+### 图纸管理页 (pages/patterns/) ✅ 已完成
 
-// 更新豆子
-await app.request(`/api/beads/${beadId}`, {
-  method: 'PUT',
-  data: { quantity: 150 }
-});
+**已实现功能：**
+- ✅ 想拼/已拼标签切换
+- ✅ 图纸网格展示
+- ✅ 添加图纸（拍照或相册）
+- ✅ 图片自动压缩
+- ✅ 缩略图生成
+- ✅ 图纸详情查看
+- ✅ 图片预览（放大查看）
+- ✅ 标记完成
+- ✅ 删除图纸
+- ✅ 用豆记录显示
+- ✅ 下拉刷新
 
-// 删除豆子
-await app.request(`/api/beads/${beadId}`, {
-  method: 'DELETE'
-});
-```
+**代码文件：**
+- patterns.js (280 行)
+- patterns.wxml (160 行)
+- patterns.wxss (140 行)
+- patterns.json (配置)
 
-### 图纸管理页 (pages/patterns/)
+**技术亮点：**
+- base64 图片处理
+- Canvas 生成缩略图
+- Promise 异步图片转换
 
-**功能需求：**
-- 显示图纸列表
-- 上传图纸（拍照或相册）
-- 编辑图纸信息
-- 删除图纸
-- 标记完成状态
-- 记录用豆量
-
-**API 调用示例：**
-
-```javascript
-// 获取图纸列表
-const patterns = await app.request('/api/patterns');
-
-// 添加图纸（需要先将图片转为 base64）
-await app.request('/api/patterns', {
-  method: 'POST',
-  data: {
-    name: '樱花图纸',
-    imageUrl: 'data:image/png;base64,...',
-    thumbnailUrl: 'data:image/png;base64,...',
-    status: 'planned'
-  }
-});
-```
-
-### 设置页 (pages/settings/)
+### 设置页 (pages/settings/) ✅ 已完成
 
 **功能需求：**
 - 显示用户信息

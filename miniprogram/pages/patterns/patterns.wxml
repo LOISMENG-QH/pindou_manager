@@ -1,0 +1,177 @@
+<!-- pages/patterns/patterns.wxml -->
+<view class="container">
+  <!-- 标签切换 -->
+  <view class="tabs">
+    <view
+      class="tab {{activeTab === 'planned' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="planned"
+    >
+      想拼 ({{patterns.filter(p => p.status === 'planned').length}})
+    </view>
+    <view
+      class="tab {{activeTab === 'completed' ? 'active' : ''}}"
+      bindtap="switchTab"
+      data-tab="completed"
+    >
+      已拼 ({{patterns.filter(p => p.status === 'completed').length}})
+    </view>
+  </view>
+
+  <!-- 添加按钮 -->
+  <view class="add-fab" bindtap="showAddPattern">+</view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 图纸网格 -->
+  <view class="patterns-grid" wx:else>
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{patterns.filter(p => p.status === activeTab).length === 0}}">
+      <view class="empty-icon">📐</view>
+      <view class="empty-text">
+        {{activeTab === 'planned' ? '还没有想拼的图纸' : '还没有完成的作品'}}
+      </view>
+    </view>
+
+    <!-- 图纸卡片 -->
+    <view
+      class="pattern-card"
+      wx:for="{{patterns}}"
+      wx:key="id"
+      wx:if="{{item.status === activeTab}}"
+      bindtap="showDetail"
+      data-pattern="{{item}}"
+    >
+      <image
+        class="pattern-image"
+        src="{{item.thumbnailUrl || item.imageUrl}}"
+        mode="aspectFill"
+      />
+      <view class="pattern-info">
+        <view class="pattern-name">{{item.name}}</view>
+        <view class="pattern-desc" wx:if="{{item.description}}">
+          {{item.description}}
+        </view>
+      </view>
+      
+      <!-- 已完成标记 -->
+      <view class="completed-badge" wx:if="{{item.status === 'completed'}}">
+        ✓ 已完成
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加图纸弹窗 -->
+  <view class="modal" wx:if="{{showAddModal}}">
+    <view class="modal-mask" bindtap="closeAddModal"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <view class="modal-title">添加图纸</view>
+        <view class="modal-close" bindtap="closeAddModal">✕</view>
+      </view>
+
+      <view class="form">
+        <!-- 图片预览 -->
+        <view class="image-preview" wx:if="{{formData.thumbnailUrl}}">
+          <image src="{{formData.thumbnailUrl}}" mode="aspectFit" />
+        </view>
+
+        <!-- 选择图片 -->
+        <button class="choose-image-btn" bindtap="chooseImage">
+          {{formData.imageUrl ? '重新选择图片' : '选择图片'}}
+        </button>
+
+        <!-- 名称 -->
+        <view class="form-item">
+          <view class="label">图纸名称</view>
+          <input
+            class="input"
+            type="text"
+            placeholder="如: 樱花图案"
+            value="{{formData.name}}"
+            bindinput="onFormInput"
+            data-field="name"
+          />
+        </view>
+
+        <!-- 描述 -->
+        <view class="form-item">
+          <view class="label">描述（可选）</view>
+          <textarea
+            class="textarea"
+            placeholder="记录一些备注信息"
+            value="{{formData.description}}"
+            bindinput="onFormInput"
+            data-field="description"
+            maxlength="200"
+          />
+        </view>
+
+        <!-- 提交 -->
+        <button class="submit-btn" bindtap="submitForm">添加</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 图纸详情弹窗 -->
+  <view class="modal detail-modal" wx:if="{{showDetailModal}}">
+    <view class="modal-mask" bindtap="closeDetailModal"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <view class="modal-title">{{selectedPattern.name}}</view>
+        <view class="modal-close" bindtap="closeDetailModal">✕</view>
+      </view>
+
+      <view class="detail-content">
+        <!-- 图片 -->
+        <image
+          class="detail-image"
+          src="{{selectedPattern.imageUrl}}"
+          mode="aspectFit"
+          bindtap="previewImage"
+          data-url="{{selectedPattern.imageUrl}}"
+        />
+
+        <!-- 描述 -->
+        <view class="detail-desc" wx:if="{{selectedPattern.description}}">
+          {{selectedPattern.description}}
+        </view>
+
+        <!-- 用豆记录 -->
+        <view class="beads-used" wx:if="{{selectedPattern.beadsUsed && selectedPattern.beadsUsed.length > 0}}">
+          <view class="section-title">用豆记录</view>
+          <view class="bead-item" wx:for="{{selectedPattern.beadsUsed}}" wx:key="colorCode">
+            <view class="bead-code">{{item.colorCode}}</view>
+            <view class="bead-name">{{item.colorName}}</view>
+            <view class="bead-qty">×{{item.quantity}}</view>
+          </view>
+        </view>
+
+        <!-- 操作按钮 -->
+        <view class="detail-actions">
+          <button
+            class="action-btn complete-btn"
+            wx:if="{{selectedPattern.status === 'planned'}}"
+            bindtap="markCompleted"
+            data-pattern="{{selectedPattern}}"
+          >
+            标记完成
+          </button>
+          <button
+            class="action-btn delete-btn"
+            bindtap="deletePattern"
+            data-pattern="{{selectedPattern}}"
+          >
+            删除
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 隐藏的画布用于生成缩略图 -->
+  <canvas canvas-id="thumbnailCanvas" style="width: 200px; height: 200px; position: fixed; left: -9999px;" />
+</view>

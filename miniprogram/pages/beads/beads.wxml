@@ -1,0 +1,171 @@
+<!-- pages/beads/beads.wxml -->
+<view class="container">
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <input
+      class="search-input"
+      type="text"
+      placeholder="搜索色号或名称"
+      value="{{searchTerm}}"
+      bindinput="onSearchInput"
+    />
+    <button class="add-btn" bindtap="showAddBead">+ 添加</button>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+
+  <!-- 豆子列表 -->
+  <view class="beads-list" wx:else>
+    <!-- 空状态 -->
+    <view class="empty" wx:if="{{beads.length === 0}}">
+      <view class="empty-icon">📦</view>
+      <view class="empty-text">还没有豆子，点击添加吧</view>
+    </view>
+
+    <!-- 豆子卡片 -->
+    <view
+      class="bead-card {{bead.quantity <= bead.alertThreshold ? 'low-stock' : ''}}"
+      wx:for="{{beads}}"
+      wx:key="id"
+      wx:if="{{!searchTerm || bead.colorCode.includes(searchTerm) || bead.colorName.includes(searchTerm)}}"
+    >
+      <!-- 左侧颜色块 -->
+      <view class="color-block" style="background: {{bead.colorHex || '#ccc'}}"></view>
+
+      <!-- 中间信息 -->
+      <view class="bead-info">
+        <view class="bead-code">{{bead.colorCode}}</view>
+        <view class="bead-name">{{bead.colorName}}</view>
+        <view class="bead-quantity">库存: {{bead.quantity}}</view>
+        <view class="low-stock-badge" wx:if="{{bead.quantity <= bead.alertThreshold}}">
+          ⚠️ 库存不足
+        </view>
+      </view>
+
+      <!-- 右侧操作 -->
+      <view class="bead-actions">
+        <!-- 数量调整 -->
+        <view class="quantity-controls">
+          <button
+            class="quantity-btn"
+            bindtap="adjustQuantity"
+            data-bead="{{bead}}"
+            data-change="{{-10}}"
+          >-10</button>
+          <button
+            class="quantity-btn"
+            bindtap="adjustQuantity"
+            data-bead="{{bead}}"
+            data-change="{{-1}}"
+          >-1</button>
+          <button
+            class="quantity-btn"
+            bindtap="adjustQuantity"
+            data-bead="{{bead}}"
+            data-change="{{1}}"
+          >+1</button>
+          <button
+            class="quantity-btn"
+            bindtap="adjustQuantity"
+            data-bead="{{bead}}"
+            data-change="{{10}}"
+          >+10</button>
+        </view>
+
+        <!-- 编辑删除 -->
+        <view class="edit-controls">
+          <button class="edit-btn" bindtap="showEditBead" data-bead="{{bead}}">编辑</button>
+          <button class="delete-btn" bindtap="deleteBead" data-bead="{{bead}}">删除</button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 添加/编辑弹窗 -->
+  <view class="modal" wx:if="{{showAddModal}}">
+    <view class="modal-mask" bindtap="closeModal"></view>
+    <view class="modal-content">
+      <view class="modal-header">
+        <view class="modal-title">{{editingBead ? '编辑豆子' : '添加豆子'}}</view>
+        <view class="modal-close" bindtap="closeModal">✕</view>
+      </view>
+
+      <view class="form">
+        <!-- 色号 -->
+        <view class="form-item">
+          <view class="label">色号</view>
+          <input
+            class="input"
+            type="text"
+            placeholder="如: A1"
+            value="{{formData.colorCode}}"
+            bindinput="onFormInput"
+            data-field="colorCode"
+          />
+        </view>
+
+        <!-- 预设色号快捷选择 -->
+        <view class="preset-colors">
+          <view
+            class="preset-color"
+            wx:for="{{presetColors}}"
+            wx:key="code"
+            bindtap="selectPresetColor"
+            data-code="{{item.code}}"
+            data-name="{{item.name}}"
+            style="background: {{item.hex}}"
+          >
+            <view class="preset-code">{{item.code}}</view>
+          </view>
+        </view>
+
+        <!-- 名称 -->
+        <view class="form-item">
+          <view class="label">名称</view>
+          <input
+            class="input"
+            type="text"
+            placeholder="如: 淡黄"
+            value="{{formData.colorName}}"
+            bindinput="onFormInput"
+            data-field="colorName"
+          />
+        </view>
+
+        <!-- 数量 -->
+        <view class="form-item">
+          <view class="label">数量</view>
+          <input
+            class="input"
+            type="number"
+            placeholder="100"
+            value="{{formData.quantity}}"
+            bindinput="onFormInput"
+            data-field="quantity"
+          />
+        </view>
+
+        <!-- 低库存阈值 -->
+        <view class="form-item">
+          <view class="label">低库存提醒（数量低于）</view>
+          <input
+            class="input"
+            type="number"
+            placeholder="10"
+            value="{{formData.alertThreshold}}"
+            bindinput="onFormInput"
+            data-field="alertThreshold"
+          />
+        </view>
+
+        <!-- 提交按钮 -->
+        <button class="submit-btn" bindtap="submitForm">
+          {{editingBead ? '保存' : '添加'}}
+        </button>
+      </view>
+    </view>
+  </view>
+</view>
