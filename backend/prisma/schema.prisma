@@ -1,0 +1,64 @@
+// Prisma Schema for 拼豆豆
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户表
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  username  String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // 关联
+  beads     Bead[]
+  patterns  Pattern[]
+  
+  @@map("users")
+}
+
+// 豆子表
+model Bead {
+  id             String   @id @default(uuid())
+  colorCode      String
+  colorName      String
+  quantity       Int      @default(0)
+  alertThreshold Int      @default(10)
+  userId         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // 关联
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, colorCode])
+  @@map("beads")
+}
+
+// 图纸表
+model Pattern {
+  id          String   @id @default(uuid())
+  name        String
+  imageUrl    String
+  thumbnailUrl String
+  description String?
+  status      String   @default("planned") // 'planned' | 'completed'
+  beadsUsed   Json?    // BeadUsage[]
+  analyzed    Boolean  @default(false)
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 关联
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("patterns")
+}
