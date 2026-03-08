@@ -13,7 +13,7 @@
 
 .manager-header h2 {
   font-size: 22px;
-  color: #333;
+  color: var(--color-text);
 }
 
 .header-actions {
@@ -74,7 +74,7 @@
 
 .setting-row label {
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
 }
 
 .threshold-input {
@@ -88,7 +88,7 @@
 .hint-text {
   margin-top: 8px;
   font-size: 13px;
-  color: #666;
+  color: var(--color-text-secondary);
 }
 
 /* 低库存警告 */
@@ -128,12 +128,12 @@
 .form-label {
   display: block;
   font-weight: 600;
-  color: #333;
+  color: var(--color-text);
   margin-bottom: 6px;
   font-size: 14px;
 }
 
-.form-input {
+.bead-form input {
   width: 100%;
   padding: 10px 14px;
   border: 1px solid #ddd;
@@ -141,7 +141,7 @@
   font-size: 14px;
 }
 
-.form-input:focus {
+.bead-form input:focus {
   outline: none;
   border-color: var(--color-primary);
 }
@@ -294,21 +294,57 @@
 
 .btn-secondary {
   background: var(--color-secondary);
-  color: #333;
+  color: var(--color-text);
 }
 
 .btn-secondary:hover {
   background: #d0d0d0;
 }
 
-/* 新豆子卡片样式 */
-.bead-list {
+/* 系列分组列表 */
+.bead-list-grouped {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.bead-series-group {
+  width: 100%;
+}
+
+.series-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 3px solid var(--color-primary);
+}
+
+.series-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.series-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: #f0f0f0;
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+/* 豆子卡片网格 */
+.bead-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 16px;
 }
 
-.bead-card-new {
+.bead-card {
   position: relative;
   border-radius: 12px;
   padding: 20px;
@@ -317,12 +353,12 @@
   overflow: hidden;
 }
 
-.bead-card-new:hover {
+.bead-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
-.bead-card-new.low-stock {
+.bead-card.low-stock {
   box-shadow: 0 0 0 3px #ffc107;
 }
 
@@ -341,80 +377,91 @@
   font-weight: 600;
 }
 
-.bead-header-new {
+.bead-header {
   margin-bottom: 16px;
 }
 
-.bead-header-new h3 {
+.bead-header h3 {
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 4px 0;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
-.bead-subtitle {
+.bead-header p {
   font-size: 14px;
   opacity: 0.9;
   margin: 0;
 }
 
-.quantity-control-new {
+.bead-quantity {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: center;
-  gap: 16px;
-  margin: 20px 0;
+  gap: 6px;
+  margin: 16px 0;
 }
 
-.quantity-control-new button {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  font-size: 20px;
-  font-weight: bold;
-  transition: all 0.2s;
-  border: none;
-}
-
-.quantity-control-new button:hover {
-  transform: scale(1.1);
-}
-
-.quantity-control-new button:active {
-  transform: scale(0.95);
-}
-
-.quantity-new {
+.quantity-value {
   font-size: 32px;
   font-weight: 700;
-  min-width: 60px;
-  text-align: center;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.bead-actions-new {
+.quantity-unit {
+  font-size: 16px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.bead-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.btn-adjust {
+  padding: 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn-adjust:hover {
+  transform: scale(1.05);
+}
+
+.btn-adjust:active {
+  transform: scale(0.95);
+}
+
+.bead-controls {
   display: flex;
   gap: 8px;
   justify-content: center;
-  margin-top: 16px;
 }
 
-.btn-icon-new {
+.btn-icon {
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: all 0.2s;
   border: none;
+  background: rgba(255, 255, 255, 0.2);
 }
 
-.btn-icon-new:hover {
+.btn-icon:hover {
   transform: scale(1.1);
+  background: rgba(255, 255, 255, 0.3);
 }
 
-.btn-icon-new:active {
+.btn-icon:active {
   transform: scale(0.95);
 }
 
@@ -436,9 +483,19 @@
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .bead-list {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  .bead-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 12px;
+  }
+
+  .series-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .series-title {
+    font-size: 16px;
   }
 
   .color-code-input-group {
@@ -468,11 +525,11 @@
     width: 100%;
   }
 
-  .bead-header-new h3 {
+  .bead-header h3 {
     font-size: 20px;
   }
 
-  .quantity-new {
+  .quantity-value {
     font-size: 28px;
   }
 }

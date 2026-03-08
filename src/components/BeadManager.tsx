@@ -46,6 +46,15 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
     return preset?.hex || '#e0e0e0';
   };
 
+  // 计算文字颜色（基于背景亮度）
+  const getTextColor = (hex: string): string => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    return brightness > 128 ? '#000000' : '#ffffff';
+  };
+
   // 搜索过滤色号库
   const filteredColors = PRESET_COLORS.filter(color => 
     searchTerm === '' || 
@@ -79,6 +88,34 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
     return a.colorCode.localeCompare(b.colorCode);
   });
 
+  // 按系列分组豆子
+  const groupedBeads: { [key: string]: Bead[] } = {};
+  const seriesNames: { [key: string]: string } = {
+    A: 'A系列 - 黄橙粉暖色系',
+    B: 'B系列 - 绿色系',
+    C: 'C系列 - 蓝青色系',
+    D: 'D系列 - 紫色系',
+    E: 'E系列 - 粉红色系',
+    F: 'F系列 - 红棕色系',
+    G: 'G系列 - 棕褐色系',
+    H: 'H系列 - 黑白灰系',
+    M: 'M系列 - 特殊灰色系',
+  };
+
+  sortedBeads.forEach(bead => {
+    const series = bead.colorCode.charAt(0).toUpperCase();
+    if (!groupedBeads[series]) {
+      groupedBeads[series] = [];
+    }
+    groupedBeads[series].push(bead);
+  });
+
+  // 按字母顺序排序系列
+  const sortedSeries = Object.keys(groupedBeads).sort((a, b) => {
+    const order = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'M'];
+    return order.indexOf(a) - order.indexOf(b);
+  });
+
   // 选择色号库中的颜色
   const handleSelectPresetColor = (color: typeof PRESET_COLORS[0]) => {
     setFormData({
@@ -96,7 +133,7 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
     setFormData({
       ...formData,
       colorCode: value,
-      colorName: matchedColor ? matchedColor.colorName : value
+      colorName: matchedColor ? matchedColor.colorName : formData.colorName
     });
   };
 
@@ -303,32 +340,31 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
               </div>
             )}
           </div>
-
+          
           {/* 颜色名称 */}
           <div className="form-section">
-            <label className="form-label">颜色名称</label>
+            <label className="form-label">颜色名称 *</label>
             <input
               type="text"
-              placeholder="颜色名称（选择色号库会自动填充）"
+              placeholder="颜色名称"
               value={formData.colorName}
               onChange={(e) => setFormData({ ...formData, colorName: e.target.value })}
-              className="form-input"
+              required
             />
           </div>
-
+          
           {/* 数量 */}
           <div className="form-section">
-            <label className="form-label">当前库存</label>
+            <label className="form-label">初始数量</label>
             <input
               type="number"
               min="0"
-              placeholder="不填写默认为 0"
+              placeholder="0"
               value={formData.quantity}
               onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-              className="form-input"
             />
           </div>
-
+          
           <div className="form-actions">
             <button type="submit" className="btn-primary">
               <Save size={18} />
@@ -342,100 +378,123 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
         </form>
       )}
 
-      {beads.length === 0 ? (
-        <div className="empty-state">
-          <Palette size={48} />
-          <p>还没有添加任何色号</p>
-          <p>点击"添加色号"开始管理你的拼豆库存</p>
-        </div>
-      ) : filteredBeads.length === 0 ? (
-        <div className="empty-state">
-          <Search size={48} />
-          <p>没有找到匹配的色号</p>
-          <p>尝试其他搜索关键词</p>
-        </div>
-      ) : (
-        <div className="bead-list">
-          {sortedBeads.map((bead) => {
-            const bgColor = getColorHex(bead.colorCode);
-            const isLowStock = bead.quantity <= bead.alertThreshold;
-            
-            // 计算文字颜色（根据背景亮度）
-            const rgb = parseInt(bgColor.slice(1), 16);
-            const r = (rgb >> 16) & 0xff;
-            const g = (rgb >> 8) & 0xff;
-            const b = (rgb >> 0) & 0xff;
-            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-            const textColor = brightness > 128 ? '#333' : '#fff';
-            
-            return (
-              <div 
-                key={bead.id} 
-                className={`bead-card-new ${isLowStock ? 'low-stock' : ''}`}
-                style={{ 
-                  background: bgColor,
-                  color: textColor 
-                }}
-              >
-                {isLowStock && (
-                  <div className="low-stock-badge">
-                    <AlertTriangle size={14} />
+      {!isAdding && !editingId && (
+        <>
+          {sortedBeads.length === 0 ? (
+            <div className="empty-state">
+              <Palette size={64} />
+              <p>还没有添加任何色号</p>
+              <p>点击"添加色号"开始管理你的拼豆库存</p>
+            </div>
+          ) : (
+            <div className="bead-list-grouped">
+              {sortedSeries.map(series => (
+                <div key={series} className="bead-series-group">
+                  <div className="series-header">
+                    <h3 className="series-title">
+                      {seriesNames[series] || `${series}系列`}
+                    </h3>
+                    <span className="series-count">
+                      {groupedBeads[series].length} 个色号
+                    </span>
                   </div>
-                )}
-                
-                <div className="bead-header-new">
-                  <h3>{bead.colorCode}</h3>
-                  <p className="bead-subtitle">{bead.colorName}</p>
+                  <div className="bead-grid">
+                    {groupedBeads[series].map((bead) => {
+                      const bgColor = getColorHex(bead.colorCode);
+                      const textColor = getTextColor(bgColor);
+                      const isLowStock = bead.quantity <= bead.alertThreshold;
+                      
+                      return (
+                        <div
+                          key={bead.id}
+                          className={`bead-card ${isLowStock ? 'low-stock' : ''}`}
+                          style={{
+                            background: bgColor,
+                            color: textColor
+                          }}
+                        >
+                          {isLowStock && (
+                            <div className="low-stock-badge">
+                              <AlertTriangle size={14} />
+                            </div>
+                          )}
+                          <div className="bead-header">
+                            <h3 style={{ color: textColor }}>{bead.colorCode}</h3>
+                            <p style={{ color: textColor, opacity: 0.9 }}>{bead.colorName}</p>
+                          </div>
+                          <div className="bead-quantity" style={{ color: textColor }}>
+                            <span className="quantity-value">{bead.quantity}</span>
+                            <span className="quantity-unit">颗</span>
+                          </div>
+                          <div className="bead-actions">
+                            <button
+                              onClick={() => updateQuantity(bead.id!, -10)}
+                              className="btn-adjust"
+                              style={{
+                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
+                                color: textColor
+                              }}
+                            >
+                              -10
+                            </button>
+                            <button
+                              onClick={() => updateQuantity(bead.id!, -1)}
+                              className="btn-adjust"
+                              style={{
+                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
+                                color: textColor
+                              }}
+                            >
+                              -1
+                            </button>
+                            <button
+                              onClick={() => updateQuantity(bead.id!, 1)}
+                              className="btn-adjust"
+                              style={{
+                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
+                                color: textColor
+                              }}
+                            >
+                              +1
+                            </button>
+                            <button
+                              onClick={() => updateQuantity(bead.id!, 10)}
+                              className="btn-adjust"
+                              style={{
+                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
+                                color: textColor
+                              }}
+                            >
+                              +10
+                            </button>
+                          </div>
+                          <div className="bead-controls">
+                            <button
+                              onClick={() => handleEdit(bead)}
+                              className="btn-icon"
+                              style={{ color: textColor }}
+                              title="编辑"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(bead.id!)}
+                              className="btn-icon"
+                              style={{ color: textColor }}
+                              title="删除"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                
-                <div className="quantity-control-new">
-                  <button 
-                    onClick={() => updateQuantity(bead.id!, -1)}
-                    style={{ 
-                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
-                      color: textColor 
-                    }}
-                  >
-                    -
-                  </button>
-                  <span className="quantity-new">{bead.quantity}</span>
-                  <button 
-                    onClick={() => updateQuantity(bead.id!, 1)}
-                    style={{ 
-                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
-                      color: textColor 
-                    }}
-                  >
-                    +
-                  </button>
-                </div>
-                
-                <div className="bead-actions-new">
-                  <button 
-                    className="btn-icon-new" 
-                    onClick={() => handleEdit(bead)}
-                    style={{ 
-                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
-                      color: textColor 
-                    }}
-                  >
-                    <Edit2 size={16} />
-                  </button>
-                  <button 
-                    className="btn-icon-new" 
-                    onClick={() => handleDelete(bead.id!)}
-                    style={{ 
-                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
-                      color: textColor 
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );
