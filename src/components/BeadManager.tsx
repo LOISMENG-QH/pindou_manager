@@ -16,12 +16,12 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
   const [globalAlertThreshold, setGlobalAlertThreshold] = useState(10);
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [beadSearchTerm, setBeadSearchTerm] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [formData, setFormData] = useState({
     colorCode: '',
     colorName: '',
     quantity: '',
-    alertThreshold: 10
   });
 
   // 加载全局低库存阈值
@@ -33,11 +33,17 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
   }, []);
 
   const resetForm = () => {
-    setFormData({ colorCode: '', colorName: '', quantity: '', alertThreshold: globalAlertThreshold });
+    setFormData({ colorCode: '', colorName: '', quantity: '' });
     setIsAdding(false);
     setEditingId(null);
     setSearchTerm('');
     setShowColorPicker(false);
+  };
+
+  // 获取色号对应的颜色
+  const getColorHex = (colorCode: string): string => {
+    const preset = PRESET_COLORS.find(c => c.colorCode === colorCode);
+    return preset?.hex || '#e0e0e0';
   };
 
   // 搜索过滤色号库
@@ -46,6 +52,32 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
     color.colorCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
     color.colorName.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // 搜索过滤豆子列表
+  const filteredBeads = beads.filter(bead =>
+    beadSearchTerm === '' ||
+    bead.colorCode.toLowerCase().includes(beadSearchTerm.toLowerCase()) ||
+    bead.colorName.toLowerCase().includes(beadSearchTerm.toLowerCase())
+  );
+
+  // 按色号排序
+  const sortedBeads = [...filteredBeads].sort((a, b) => {
+    // 提取字母和数字部分
+    const matchA = a.colorCode.match(/([A-Z]+)(\d+)/i);
+    const matchB = b.colorCode.match(/([A-Z]+)(\d+)/i);
+    
+    if (matchA && matchB) {
+      // 先按字母排序
+      if (matchA[1] !== matchB[1]) {
+        return matchA[1].localeCompare(matchB[1]);
+      }
+      // 再按数字排序
+      return parseInt(matchA[2]) - parseInt(matchB[2]);
+    }
+    
+    // 如果格式不匹配，直接按字符串排序
+    return a.colorCode.localeCompare(b.colorCode);
+  });
 
   // 选择色号库中的颜色
   const handleSelectPresetColor = (color: typeof PRESET_COLORS[0]) => {
@@ -78,7 +110,6 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
         colorCode: formData.colorCode,
         colorName: formData.colorName,
         quantity: quantity,
-        alertThreshold: formData.alertThreshold,
         updatedAt: new Date()
       });
     } else {
@@ -86,7 +117,7 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
         colorCode: formData.colorCode,
         colorName: formData.colorName,
         quantity: quantity,
-        alertThreshold: formData.alertThreshold,
+        alertThreshold: globalAlertThreshold,
         createdAt: new Date(),
         updatedAt: new Date()
       });
@@ -100,7 +131,6 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
       colorCode: bead.colorCode,
       colorName: bead.colorName,
       quantity: String(bead.quantity),
-      alertThreshold: bead.alertThreshold
     });
     setEditingId(bead.id!);
     setIsAdding(false);
@@ -178,7 +208,7 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
               取消
             </button>
           </div>
-          <p className="hint-text">提示：这会将所有现有色号的低库存提醒值统一设置为此数值</p>
+          <p className="hint-text">提示：这会将所有现有色号的低库存提醒值统一设置为此数值，新添加的色号也会使用此值</p>
         </div>
       )}
 
@@ -187,8 +217,27 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
           <AlertTriangle size={20} />
           <div>
             <strong>库存不足提醒 ({lowStockBeads.length}个)</strong>
-            <p>{lowStockBeads.map(b => `${b.colorName}(${b.colorCode})`).join('、')} 需要补货</p>
+            <p>{lowStockBeads.map(b => `${b.colorCode} ${b.colorName}`).join('、')} 需要补货</p>
           </div>
+        </div>
+      )}
+
+      {/* 搜索框 */}
+      {!isAdding && !editingId && beads.length > 0 && (
+        <div className="search-bar">
+          <Search size={18} />
+          <input
+            type="text"
+            placeholder="搜索色号或颜色名称..."
+            value={beadSearchTerm}
+            onChange={(e) => setBeadSearchTerm(e.target.value)}
+            className="search-input-main"
+          />
+          {beadSearchTerm && (
+            <button className="clear-search" onClick={() => setBeadSearchTerm('')}>
+              <X size={16} />
+            </button>
+          )}
         </div>
       )}
 
@@ -268,29 +317,16 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
           </div>
 
           {/* 数量 */}
-          <div className="form-row">
-            <div className="form-section">
-              <label className="form-label">当前库存</label>
-              <input
-                type="number"
-                min="0"
-                placeholder="不填写默认为 0"
-                value={formData.quantity}
-                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="form-input"
-              />
-            </div>
-            
-            <div className="form-section">
-              <label className="form-label">低库存提醒值</label>
-              <input
-                type="number"
-                min="0"
-                value={formData.alertThreshold}
-                onChange={(e) => setFormData({ ...formData, alertThreshold: Number(e.target.value) })}
-                className="form-input"
-              />
-            </div>
+          <div className="form-section">
+            <label className="form-label">当前库存</label>
+            <input
+              type="number"
+              min="0"
+              placeholder="不填写默认为 0"
+              value={formData.quantity}
+              onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+              className="form-input"
+            />
           </div>
 
           <div className="form-actions">
@@ -312,35 +348,93 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
           <p>还没有添加任何色号</p>
           <p>点击"添加色号"开始管理你的拼豆库存</p>
         </div>
+      ) : filteredBeads.length === 0 ? (
+        <div className="empty-state">
+          <Search size={48} />
+          <p>没有找到匹配的色号</p>
+          <p>尝试其他搜索关键词</p>
+        </div>
       ) : (
         <div className="bead-list">
-          {beads.map((bead) => (
-            <div 
-              key={bead.id} 
-              className={`bead-card ${bead.quantity <= bead.alertThreshold ? 'low-stock' : ''}`}
-            >
-              <div className="bead-info">
-                <div className="bead-header">
-                  <h3>{bead.colorName}</h3>
-                  <span className="color-code">{bead.colorCode}</span>
+          {sortedBeads.map((bead) => {
+            const bgColor = getColorHex(bead.colorCode);
+            const isLowStock = bead.quantity <= bead.alertThreshold;
+            
+            // 计算文字颜色（根据背景亮度）
+            const rgb = parseInt(bgColor.slice(1), 16);
+            const r = (rgb >> 16) & 0xff;
+            const g = (rgb >> 8) & 0xff;
+            const b = (rgb >> 0) & 0xff;
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            const textColor = brightness > 128 ? '#333' : '#fff';
+            
+            return (
+              <div 
+                key={bead.id} 
+                className={`bead-card-new ${isLowStock ? 'low-stock' : ''}`}
+                style={{ 
+                  background: bgColor,
+                  color: textColor 
+                }}
+              >
+                {isLowStock && (
+                  <div className="low-stock-badge">
+                    <AlertTriangle size={14} />
+                  </div>
+                )}
+                
+                <div className="bead-header-new">
+                  <h3>{bead.colorCode}</h3>
+                  <p className="bead-subtitle">{bead.colorName}</p>
                 </div>
-                <div className="quantity-control">
-                  <button onClick={() => updateQuantity(bead.id!, -1)}>-</button>
-                  <span className="quantity">{bead.quantity}</span>
-                  <button onClick={() => updateQuantity(bead.id!, 1)}>+</button>
+                
+                <div className="quantity-control-new">
+                  <button 
+                    onClick={() => updateQuantity(bead.id!, -1)}
+                    style={{ 
+                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
+                      color: textColor 
+                    }}
+                  >
+                    -
+                  </button>
+                  <span className="quantity-new">{bead.quantity}</span>
+                  <button 
+                    onClick={() => updateQuantity(bead.id!, 1)}
+                    style={{ 
+                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
+                      color: textColor 
+                    }}
+                  >
+                    +
+                  </button>
                 </div>
-                <p className="threshold-info">低于 {bead.alertThreshold} 时提醒</p>
+                
+                <div className="bead-actions-new">
+                  <button 
+                    className="btn-icon-new" 
+                    onClick={() => handleEdit(bead)}
+                    style={{ 
+                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
+                      color: textColor 
+                    }}
+                  >
+                    <Edit2 size={16} />
+                  </button>
+                  <button 
+                    className="btn-icon-new" 
+                    onClick={() => handleDelete(bead.id!)}
+                    style={{ 
+                      background: brightness > 128 ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.2)',
+                      color: textColor 
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
-              <div className="bead-actions">
-                <button className="btn-icon" onClick={() => handleEdit(bead)}>
-                  <Edit2 size={18} />
-                </button>
-                <button className="btn-icon btn-danger" onClick={() => handleDelete(bead.id!)}>
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
