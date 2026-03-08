@@ -1,18 +1,18 @@
 import { useState, useEffect } from 'react';
-import { db } from '../db';
-import { Bead } from '../types';
+import { api } from '../api';
+import type { Bead } from '../api';
 import { Plus, Edit2, Trash2, AlertTriangle, Save, X, Palette, Search } from 'lucide-react';
 import { PRESET_COLORS } from '../utils';
 import './BeadManager.css';
 
 interface Props {
   beads: Bead[];
-  lowStockBeads: Bead[];
+  onUpdate: () => void;
 }
 
-export default function BeadManager({ beads, lowStockBeads }: Props) {
+export default function BeadManager({ beads, onUpdate }: Props) {
   const [isAdding, setIsAdding] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [globalAlertThreshold, setGlobalAlertThreshold] = useState(10);
   const [showGlobalSettings, setShowGlobalSettings] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -24,7 +24,8 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
     quantity: '',
   });
 
-  // 加载全局低库存阈值
+  const lowStockBeads = beads.filter(b => b.quantity <= b.alertThreshold);
+
   useEffect(() => {
     const saved = localStorage.getItem('globalAlertThreshold');
     if (saved) {
@@ -40,480 +41,417 @@ export default function BeadManager({ beads, lowStockBeads }: Props) {
     setShowColorPicker(false);
   };
 
-  // 获取色号对应的颜色
   const getColorHex = (colorCode: string): string => {
     const preset = PRESET_COLORS.find(c => c.colorCode === colorCode);
-    // 如果找不到颜色，使用深灰色背景而不是浅灰色
     return preset?.hex || '#6b7280';
   };
 
-  // 计算文字颜色（基于背景亮度）
   const getTextColor = (hex: string): string => {
-    // 处理无效的hex值
-    if (!hex || hex.length < 7) {
-      return '#ffffff';
-    }
+    if (!hex || hex.length < 7) return '#ffffff';
     
     const r = parseInt(hex.slice(1, 3), 16);
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     
-    // 检查是否解析成功
-    if (isNaN(r) || isNaN(g) || isNaN(b)) {
-      return '#ffffff';
-    }
+    if (isNaN(r) || isNaN(g) || isNaN(b)) return '#ffffff';
     
     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
     return brightness > 128 ? '#000000' : '#ffffff';
   };
 
-  // 搜索过滤色号库
   const filteredColors = PRESET_COLORS.filter(color => 
     searchTerm === '' || 
     color.colorCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
     color.colorName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // 搜索过滤豆子列表
   const filteredBeads = beads.filter(bead =>
     beadSearchTerm === '' ||
     bead.colorCode.toLowerCase().includes(beadSearchTerm.toLowerCase()) ||
     bead.colorName.toLowerCase().includes(beadSearchTerm.toLowerCase())
   );
 
-  // 按色号排序
   const sortedBeads = [...filteredBeads].sort((a, b) => {
-    // 提取字母和数字部分
-    const matchA = a.colorCode.match(/([A-Z]+)(\d+)/i);
-    const matchB = b.colorCode.match(/([A-Z]+)(\d+)/i);
-    
-    if (matchA && matchB) {
-      // 先按字母排序
-      if (matchA[1] !== matchB[1]) {
-        return matchA[1].localeCompare(matchB[1]);
+    const aLetter = a.colorCode.match(/[A-Z]+/)?.[0] || '';
+    const aNumber = parseInt(a.colorCode.match(/\d+/)?.[0] || '0');
+    const bLetter = b.colorCode.match(/[A-Z]+/)?.[0] || '';
+    const bNumber = parseInt(b.colorCode.match(/\d+/)?.[0] || '0');
+
+    if (aLetter !== bLetter) {
+      return aLetter.localeCompare(bLetter);
+    }
+    return aNumber - bNumber;
+  });
+
+  const groupedBeads = sortedBeads.reduce((acc, bead) => {
+    const series = bead.colorCode.match(/[A-Z]+/)?.[0] || 'Other';
+    if (!acc[series]) acc[series] = [];
+    acc[series].push(bead);
+    return acc;
+  }, {} as Record<string, Bead[]>);
+
+  const handleSave = async () => {
+    if (!formData.colorCode || !formData.quantity) {
+      alert('请填写色号和数量');
+      return;
+    }
+
+    const bead = {
+      colorCode: formData.colorCode,
+      colorName: formData.colorName,
+      quantity: parseInt(formData.quantity),
+      alertThreshold: globalAlertThreshold,
+    };
+
+    try {
+      if (editingId) {
+        await api.updateBead(editingId, bead);
+      } else {
+        await api.createBead(bead);
       }
-      // 再按数字排序
-      return parseInt(matchA[2]) - parseInt(matchB[2]);
+      await onUpdate();
+      resetForm();
+    } catch (error: any) {
+      alert(error.message || '操作失败');
     }
-    
-    // 如果格式不匹配，直接按字符串排序
-    return a.colorCode.localeCompare(b.colorCode);
-  });
-
-  // 按系列分组豆子
-  const groupedBeads: { [key: string]: Bead[] } = {};
-  const seriesNames: { [key: string]: string } = {
-    A: 'A系列 - 黄橙粉暖色系',
-    B: 'B系列 - 绿色系',
-    C: 'C系列 - 蓝青色系',
-    D: 'D系列 - 紫色系',
-    E: 'E系列 - 粉红色系',
-    F: 'F系列 - 红棕色系',
-    G: 'G系列 - 棕褐色系',
-    H: 'H系列 - 黑白灰系',
-    M: 'M系列 - 特殊灰色系',
-  };
-
-  sortedBeads.forEach(bead => {
-    const series = bead.colorCode.charAt(0).toUpperCase();
-    if (!groupedBeads[series]) {
-      groupedBeads[series] = [];
-    }
-    groupedBeads[series].push(bead);
-  });
-
-  // 按字母顺序排序系列
-  const sortedSeries = Object.keys(groupedBeads).sort((a, b) => {
-    const order = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'M'];
-    return order.indexOf(a) - order.indexOf(b);
-  });
-
-  // 选择色号库中的颜色
-  const handleSelectPresetColor = (color: typeof PRESET_COLORS[0]) => {
-    setFormData({
-      ...formData,
-      colorCode: color.colorCode,
-      colorName: color.colorName
-    });
-    setShowColorPicker(false);
-    setSearchTerm('');
-  };
-
-  // 当手动输入色号时，自动匹配颜色名称
-  const handleColorCodeChange = (value: string) => {
-    const matchedColor = PRESET_COLORS.find(c => c.colorCode === value);
-    setFormData({
-      ...formData,
-      colorCode: value,
-      colorName: matchedColor ? matchedColor.colorName : formData.colorName
-    });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const quantity = formData.quantity === '' ? 0 : Number(formData.quantity);
-    
-    if (editingId) {
-      await db.beads.update(editingId, {
-        colorCode: formData.colorCode,
-        colorName: formData.colorName,
-        quantity: quantity,
-        updatedAt: new Date()
-      });
-    } else {
-      await db.beads.add({
-        colorCode: formData.colorCode,
-        colorName: formData.colorName,
-        quantity: quantity,
-        alertThreshold: globalAlertThreshold,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-    }
-    
-    resetForm();
   };
 
   const handleEdit = (bead: Bead) => {
     setFormData({
       colorCode: bead.colorCode,
       colorName: bead.colorName,
-      quantity: String(bead.quantity),
+      quantity: bead.quantity.toString(),
     });
-    setEditingId(bead.id!);
-    setIsAdding(false);
+    setEditingId(bead.id);
+    setIsAdding(true);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id: string) => {
     if (confirm('确定要删除这个色号吗？')) {
-      await db.beads.delete(id);
+      try {
+        await api.deleteBead(id);
+        await onUpdate();
+      } catch (error: any) {
+        alert(error.message || '删除失败');
+      }
     }
   };
 
-  const updateQuantity = async (id: number, delta: number) => {
-    const bead = await db.beads.get(id);
-    if (bead) {
-      await db.beads.update(id, {
-        quantity: Math.max(0, bead.quantity + delta),
-        updatedAt: new Date()
-      });
+  const handleAdjustQuantity = async (bead: Bead, delta: number) => {
+    const newQuantity = Math.max(0, bead.quantity + delta);
+    try {
+      await api.updateBead(bead.id, { quantity: newQuantity });
+      await onUpdate();
+    } catch (error: any) {
+      alert(error.message || '更新失败');
     }
   };
 
-  // 应用全局低库存阈值到所有豆子
-  const applyGlobalThreshold = async () => {
-    if (!confirm(`确定要将所有色号的低库存提醒值设置为 ${globalAlertThreshold} 吗？`)) {
+  const handleSelectColor = (color: typeof PRESET_COLORS[0]) => {
+    setFormData(prev => ({
+      ...prev,
+      colorCode: color.colorCode,
+      colorName: color.colorName,
+    }));
+    setSearchTerm('');
+    setShowColorPicker(false);
+  };
+
+  const handleBatchAdd = async () => {
+    const selectedCodes = prompt('请输入要批量添加的色号（用逗号分隔），例如：A1,A2,B1');
+    if (!selectedCodes) return;
+
+    const codes = selectedCodes.split(',').map(c => c.trim().toUpperCase());
+    const validColors = PRESET_COLORS.filter(c => codes.includes(c.colorCode));
+
+    if (validColors.length === 0) {
+      alert('没有找到有效的色号');
       return;
     }
-    
-    for (const bead of beads) {
-      await db.beads.update(bead.id!, {
-        alertThreshold: globalAlertThreshold,
-        updatedAt: new Date()
-      });
+
+    let added = 0;
+    for (const color of validColors) {
+      try {
+        const existing = beads.find(b => b.colorCode === color.colorCode);
+        if (existing) {
+          await api.updateBead(existing.id, {
+            quantity: existing.quantity + 100
+          });
+        } else {
+          await api.createBead({
+            colorCode: color.colorCode,
+            colorName: color.colorName,
+            quantity: 100,
+            alertThreshold: globalAlertThreshold,
+          });
+        }
+        added++;
+      } catch (error) {
+        console.error(`添加 ${color.colorCode} 失败:`, error);
+      }
     }
-    
-    localStorage.setItem('globalAlertThreshold', String(globalAlertThreshold));
-    setShowGlobalSettings(false);
-    alert('已更新所有色号的低库存提醒值！');
+
+    await onUpdate();
+    alert(`成功添加/更新 ${added} 个色号`);
+  };
+
+  const seriesNames: Record<string, string> = {
+    'A': 'A系列',
+    'B': 'B系列',
+    'C': 'C系列',
+    'D': 'D系列',
+    'E': 'E系列',
+    'F': 'F系列',
+    'G': 'G系列',
+    'H': 'H系列',
+    'M': 'M系列',
   };
 
   return (
     <div className="bead-manager">
       <div className="manager-header">
-        <h2>豆子库存</h2>
+        <h2>
+          <Palette size={24} />
+          豆子管理
+          <span className="count-badge">{beads.length} 种</span>
+        </h2>
         <div className="header-actions">
-          <button 
-            className="btn-secondary" 
+          <button
+            className="btn-secondary"
             onClick={() => setShowGlobalSettings(!showGlobalSettings)}
           >
-            <AlertTriangle size={18} />
-            全局设置
+            ⚙️ 全局设置
+          </button>
+          <button className="btn-secondary" onClick={handleBatchAdd}>
+            📦 批量添加
           </button>
           <button className="btn-primary" onClick={() => setIsAdding(true)}>
             <Plus size={18} />
-            添加色号
+            添加豆子
           </button>
         </div>
       </div>
 
-      {/* 全局低库存设置 */}
-      {showGlobalSettings && (
-        <div className="global-settings">
-          <div className="setting-row">
-            <label>全局低库存提醒值：</label>
-            <input
-              type="number"
-              min="0"
-              value={globalAlertThreshold}
-              onChange={(e) => setGlobalAlertThreshold(Number(e.target.value))}
-              className="threshold-input"
-            />
-            <button className="btn-primary" onClick={applyGlobalThreshold}>
-              应用到所有色号
-            </button>
-            <button className="btn-secondary" onClick={() => setShowGlobalSettings(false)}>
-              取消
-            </button>
-          </div>
-          <p className="hint-text">提示：这会将所有现有色号的低库存提醒值统一设置为此数值，新添加的色号也会使用此值</p>
-        </div>
-      )}
-
       {lowStockBeads.length > 0 && (
         <div className="low-stock-alert">
           <AlertTriangle size={20} />
-          <div>
-            <strong>库存不足提醒 ({lowStockBeads.length}个)</strong>
-            <p>{lowStockBeads.map(b => `${b.colorCode} ${b.colorName}`).join('、')} 需要补货</p>
-          </div>
+          <span>{lowStockBeads.length} 个色号库存不足</span>
         </div>
       )}
 
-      {/* 搜索框 */}
-      {!isAdding && !editingId && beads.length > 0 && (
-        <div className="search-bar">
-          <Search size={18} />
-          <input
-            type="text"
-            placeholder="搜索色号或颜色名称..."
-            value={beadSearchTerm}
-            onChange={(e) => setBeadSearchTerm(e.target.value)}
-            className="search-input-main"
-          />
-          {beadSearchTerm && (
-            <button className="clear-search" onClick={() => setBeadSearchTerm('')}>
-              <X size={16} />
-            </button>
-          )}
+      {showGlobalSettings && (
+        <div className="global-settings">
+          <label>
+            全局低库存阈值：
+            <input
+              type="number"
+              value={globalAlertThreshold}
+              onChange={(e) => {
+                const val = parseInt(e.target.value);
+                setGlobalAlertThreshold(val);
+                localStorage.setItem('globalAlertThreshold', val.toString());
+              }}
+              min="0"
+            />
+          </label>
+          <small>新添加的豆子将使用此阈值</small>
         </div>
       )}
 
-      {(isAdding || editingId) && (
-        <form className="bead-form" onSubmit={handleSubmit}>
-          {/* 色号选择 */}
-          <div className="form-section">
-            <label className="form-label">色号 *</label>
-            <div className="color-code-input-group">
-              <input
-                type="text"
-                placeholder="输入色号或从色号库选择"
-                value={formData.colorCode}
-                onChange={(e) => handleColorCodeChange(e.target.value)}
-                required
-                className="color-code-input"
-              />
-              <button
-                type="button"
-                className="btn-color-picker"
-                onClick={() => setShowColorPicker(!showColorPicker)}
-              >
-                <Palette size={18} />
-                选择色号库
+      <div className="search-bar">
+        <Search size={18} />
+        <input
+          type="text"
+          placeholder="搜索色号或名称..."
+          value={beadSearchTerm}
+          onChange={(e) => setBeadSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {isAdding && (
+        <div className="modal-overlay" onClick={resetForm}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{editingId ? '编辑豆子' : '添加豆子'}</h3>
+              <button className="btn-icon" onClick={resetForm}>
+                <X size={20} />
               </button>
             </div>
-            
-            {/* 色号库选择器 */}
+
+            <div className="form-group">
+              <label>色号</label>
+              <div className="color-code-input">
+                <input
+                  type="text"
+                  value={formData.colorCode}
+                  onChange={(e) => setFormData({ ...formData, colorCode: e.target.value.toUpperCase() })}
+                  placeholder="如: A1, F7"
+                />
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={() => setShowColorPicker(!showColorPicker)}
+                >
+                  <Palette size={18} />
+                  选择
+                </button>
+              </div>
+            </div>
+
             {showColorPicker && (
-              <div className="color-picker-dropdown">
-                <div className="search-box">
+              <div className="color-picker-panel">
+                <div className="search-bar">
                   <Search size={16} />
                   <input
                     type="text"
-                    placeholder="搜索色号或颜色名称..."
+                    placeholder="搜索色号..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="search-input"
                   />
                 </div>
-                <div className="color-list">
-                  {filteredColors.length > 0 ? (
-                    filteredColors.map((color, idx) => (
-                      <div
-                        key={idx}
-                        className="color-item"
-                        onClick={() => handleSelectPresetColor(color)}
-                      >
-                        <div 
-                          className="color-swatch" 
-                          style={{ background: color.hex }}
-                        />
-                        <div className="color-info">
-                          <span className="color-code-badge">{color.colorCode}</span>
-                          <span className="color-name">{color.colorName}</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="no-results">没有找到匹配的色号</div>
-                  )}
+                <div className="color-grid">
+                  {filteredColors.map(color => (
+                    <div
+                      key={color.colorCode}
+                      className="color-option"
+                      onClick={() => handleSelectColor(color)}
+                      style={{ backgroundColor: color.hex, color: getTextColor(color.hex) }}
+                    >
+                      <div className="color-code">{color.colorCode}</div>
+                      <div className="color-name">{color.colorName}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
+
+            <div className="form-group">
+              <label>颜色名称</label>
+              <input
+                type="text"
+                value={formData.colorName}
+                onChange={(e) => setFormData({ ...formData, colorName: e.target.value })}
+                placeholder="如: 淡黄, 黑色"
+              />
+            </div>
+
+            <div className="form-group">
+              <label>数量</label>
+              <input
+                type="number"
+                value={formData.quantity}
+                onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
+                placeholder="100"
+                min="0"
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={resetForm}>
+                取消
+              </button>
+              <button className="btn-primary" onClick={handleSave}>
+                <Save size={18} />
+                保存
+              </button>
+            </div>
           </div>
-          
-          {/* 颜色名称 */}
-          <div className="form-section">
-            <label className="form-label">颜色名称 *</label>
-            <input
-              type="text"
-              placeholder="颜色名称"
-              value={formData.colorName}
-              onChange={(e) => setFormData({ ...formData, colorName: e.target.value })}
-              required
-            />
-          </div>
-          
-          {/* 数量 */}
-          <div className="form-section">
-            <label className="form-label">初始数量</label>
-            <input
-              type="number"
-              min="0"
-              placeholder="0"
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-            />
-          </div>
-          
-          <div className="form-actions">
-            <button type="submit" className="btn-primary">
-              <Save size={18} />
-              {editingId ? '保存修改' : '添加'}
-            </button>
-            <button type="button" className="btn-secondary" onClick={resetForm}>
-              <X size={18} />
-              取消
-            </button>
-          </div>
-        </form>
+        </div>
       )}
 
-      {!isAdding && !editingId && (
-        <>
-          {sortedBeads.length === 0 ? (
-            <div className="empty-state">
-              <Palette size={64} />
-              <p>还没有添加任何色号</p>
-              <p>点击"添加色号"开始管理你的拼豆库存</p>
-            </div>
-          ) : (
-            <div className="bead-list-grouped">
-              {sortedSeries.map(series => (
-                <div key={series} className="bead-series-group">
-                  <div className="series-header">
-                    <h3 className="series-title">
-                      {seriesNames[series] || `${series}系列`}
-                    </h3>
-                    <span className="series-count">
-                      {groupedBeads[series].length} 个色号
-                    </span>
+      <div className="beads-list">
+        {Object.entries(groupedBeads).map(([series, seriesBeads]) => (
+          <div key={series} className="series-group">
+            <h3 className="series-header">
+              {seriesNames[series] || series} ({seriesBeads.length})
+            </h3>
+            <div className="bead-cards">
+              {seriesBeads.map(bead => {
+                const bgColor = getColorHex(bead.colorCode);
+                const textColor = getTextColor(bgColor);
+                const isLowStock = bead.quantity <= bead.alertThreshold;
+                const isUnknown = bgColor === '#6b7280';
+
+                return (
+                  <div
+                    key={bead.id}
+                    className={`bead-card ${isLowStock ? 'low-stock' : ''} ${isUnknown ? 'unknown-color' : ''}`}
+                    style={{ backgroundColor: bgColor, color: textColor }}
+                  >
+                    {isUnknown && <div className="unknown-badge">?</div>}
+                    {isLowStock && (
+                      <div className="low-stock-badge">
+                        <AlertTriangle size={14} />
+                      </div>
+                    )}
+                    <div className="bead-code">{bead.colorCode}</div>
+                    <div className="bead-name">{bead.colorName}</div>
+                    <div className="bead-quantity">{bead.quantity}</div>
+                    
+                    <div className="bead-actions">
+                      <button
+                        className="btn-adjust"
+                        onClick={() => handleAdjustQuantity(bead, -10)}
+                        title="减少10"
+                      >
+                        -10
+                      </button>
+                      <button
+                        className="btn-adjust"
+                        onClick={() => handleAdjustQuantity(bead, -1)}
+                        title="减少1"
+                      >
+                        -1
+                      </button>
+                      <button
+                        className="btn-adjust"
+                        onClick={() => handleAdjustQuantity(bead, 1)}
+                        title="增加1"
+                      >
+                        +1
+                      </button>
+                      <button
+                        className="btn-adjust"
+                        onClick={() => handleAdjustQuantity(bead, 10)}
+                        title="增加10"
+                      >
+                        +10
+                      </button>
+                    </div>
+
+                    <div className="bead-card-actions">
+                      <button
+                        className="btn-icon"
+                        onClick={() => handleEdit(bead)}
+                        title="编辑"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        className="btn-icon"
+                        onClick={() => handleDelete(bead.id)}
+                        title="删除"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <div className="bead-grid">
-                    {groupedBeads[series].map((bead) => {
-                      const bgColor = getColorHex(bead.colorCode);
-                      const textColor = getTextColor(bgColor);
-                      const isLowStock = bead.quantity <= bead.alertThreshold;
-                      const isUnknownColor = !PRESET_COLORS.find(c => c.colorCode === bead.colorCode);
-                      
-                      return (
-                        <div
-                          key={bead.id}
-                          className={`bead-card ${isLowStock ? 'low-stock' : ''} ${isUnknownColor ? 'unknown-color' : ''}`}
-                          style={{
-                            background: bgColor,
-                            color: textColor
-                          }}
-                          title={isUnknownColor ? `${bead.colorCode} - 未在色号库中找到颜色` : `${bead.colorCode} - ${bead.colorName}`}
-                        >
-                          {isLowStock && (
-                            <div className="low-stock-badge">
-                              <AlertTriangle size={14} />
-                            </div>
-                          )}
-                          {isUnknownColor && (
-                            <div className="unknown-color-badge" title="未知颜色">
-                              ?
-                            </div>
-                          )}
-                          <div className="bead-header">
-                            <h3 style={{ color: textColor }}>{bead.colorCode}</h3>
-                            <p style={{ color: textColor, opacity: 0.9 }}>{bead.colorName}</p>
-                          </div>
-                          <div className="bead-quantity" style={{ color: textColor }}>
-                            <span className="quantity-value">{bead.quantity}</span>
-                            <span className="quantity-unit">颗</span>
-                          </div>
-                          <div className="bead-actions">
-                            <button
-                              onClick={() => updateQuantity(bead.id!, -10)}
-                              className="btn-adjust"
-                              style={{
-                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
-                                color: textColor
-                              }}
-                            >
-                              -10
-                            </button>
-                            <button
-                              onClick={() => updateQuantity(bead.id!, -1)}
-                              className="btn-adjust"
-                              style={{
-                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
-                                color: textColor
-                              }}
-                            >
-                              -1
-                            </button>
-                            <button
-                              onClick={() => updateQuantity(bead.id!, 1)}
-                              className="btn-adjust"
-                              style={{
-                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
-                                color: textColor
-                              }}
-                            >
-                              +1
-                            </button>
-                            <button
-                              onClick={() => updateQuantity(bead.id!, 10)}
-                              className="btn-adjust"
-                              style={{
-                                background: `rgba(${textColor === '#ffffff' ? '255,255,255' : '0,0,0'}, 0.2)`,
-                                color: textColor
-                              }}
-                            >
-                              +10
-                            </button>
-                          </div>
-                          <div className="bead-controls">
-                            <button
-                              onClick={() => handleEdit(bead)}
-                              className="btn-icon"
-                              style={{ color: textColor }}
-                              title="编辑"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(bead.id!)}
-                              className="btn-icon"
-                              style={{ color: textColor }}
-                              title="删除"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
-          )}
-        </>
+          </div>
+        ))}
+      </div>
+
+      {beads.length === 0 && (
+        <div className="empty-state">
+          <Palette size={48} />
+          <p>还没有添加豆子</p>
+          <button className="btn-primary" onClick={() => setIsAdding(true)}>
+            <Plus size={18} />
+            添加第一个豆子
+          </button>
+        </div>
       )}
     </div>
   );

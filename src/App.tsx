@@ -1,70 +1,58 @@
 import { useState, useEffect } from 'react';
-import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from './db';
-import { AlertTriangle, Palette, Image, Settings } from 'lucide-react';
-import BeadManager from './components/BeadManager';
-import PatternManager from './components/PatternManager';
-import SettingsPanel from './components/SettingsPanel';
-import { loadTheme, applyTheme } from './theme';
-import './App.css';
+import { api } from './api';
+import type { User } from './api';
+import AuthPage from './components/AuthPage';
+import MainApp from './components/MainApp';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'beads' | 'patterns' | 'settings'>('beads');
-  
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    // 加载主题
-    const theme = loadTheme();
-    applyTheme(theme);
+    checkAuth();
   }, []);
 
-  const beads = useLiveQuery(() => db.beads.toArray());
-  const patterns = useLiveQuery(() => db.patterns.toArray());
+  const checkAuth = async () => {
+    try {
+      const currentUser = await api.getCurrentUser();
+      setUser(currentUser);
+    } catch (error) {
+      console.log('未登录或登录已过期');
+      setUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const lowStockBeads = beads?.filter(bead => bead.quantity <= bead.alertThreshold) || [];
+  const handleLoginSuccess = (user: User) => {
+    setUser(user);
+  };
 
-  return (
-    <div className="app">
-      <header className="header">
-        <h1>🎨 拼豆豆</h1>
-        {lowStockBeads.length > 0 && (
-          <div className="alert-badge">
-            <AlertTriangle size={16} />
-            <span>{lowStockBeads.length} 个色号库存不足</span>
-          </div>
-        )}
-      </header>
+  const handleLogout = () => {
+    api.logout();
+    setUser(null);
+  };
 
-      <div className="tabs">
-        <button
-          className={`tab ${activeTab === 'beads' ? 'active' : ''}`}
-          onClick={() => setActiveTab('beads')}
-        >
-          <Palette size={18} />
-          豆子管理
-        </button>
-        <button
-          className={`tab ${activeTab === 'patterns' ? 'active' : ''}`}
-          onClick={() => setActiveTab('patterns')}
-        >
-          <Image size={18} />
-          图纸管理
-        </button>
-        <button
-          className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          <Settings size={18} />
-          设置
-        </button>
+  if (loading) {
+    return (
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100vh',
+        fontSize: '24px',
+        color: '#666'
+      }}>
+        加载中...
       </div>
+    );
+  }
 
-      <main className="content">
-        {activeTab === 'beads' && <BeadManager beads={beads || []} lowStockBeads={lowStockBeads} />}
-        {activeTab === 'patterns' && <PatternManager patterns={patterns || []} beads={beads || []} />}
-        {activeTab === 'settings' && <SettingsPanel />}
-      </main>
-    </div>
-  );
+  if (!user) {
+    return <AuthPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  return <MainApp user={user} onLogout={handleLogout} />;
 }
 
 export default App;

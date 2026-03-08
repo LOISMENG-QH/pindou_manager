@@ -183,6 +183,11 @@ class ApiClient {
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     return this.request('/health');
   }
+  
+  // 退出登录
+  logout(): void {
+    TokenManager.removeToken();
+  }
 }
 
 // 导出单例
