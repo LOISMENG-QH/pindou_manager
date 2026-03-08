@@ -25,7 +25,7 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>🎨 拼豆管理系统</h1>
+        <h1>🎨 拼豆豆</h1>
         {lowStockBeads.length > 0 && (
           <div className="alert-badge">
             <AlertTriangle size={16} />

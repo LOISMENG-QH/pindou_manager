@@ -291,7 +291,7 @@ export default function SettingsPanel() {
           <h3>关于</h3>
         </div>
         <div className="about-info">
-          <p><strong>拼豆管理系统</strong></p>
+          <p><strong>拼豆豆</strong></p>
           <p>版本：1.0.0</p>
           <p>管理你的拼豆色号和图纸</p>
           <p className="github-link">
