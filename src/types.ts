@@ -14,7 +14,15 @@ export interface Pattern {
   imageData: string; // base64
   thumbnail: string; // base64 thumbnail
   description?: string;
-  beadsUsed?: { colorCode: string; quantity: number }[];
+  status: 'planned' | 'completed'; // 想拼 | 已拼
+  beadsUsed?: BeadUsage[]; // 使用的豆子记录
+  analyzed?: boolean; // 是否已分析
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface BeadUsage {
+  colorCode: string;
+  colorName: string;
+  quantity: number;
 }
