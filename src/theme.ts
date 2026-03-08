@@ -7,6 +7,8 @@ export interface Theme {
   warning: string;
   danger: string;
   background: string;
+  text: string;
+  textSecondary: string;
 }
 
 export const THEMES: { [key: string]: Theme } = {
@@ -17,7 +19,9 @@ export const THEMES: { [key: string]: Theme } = {
     success: '#4caf50',
     warning: '#ffc107',
     danger: '#d32f2f',
-    background: '#f5f5f5'
+    background: '#f5f5f5',
+    text: '#333333',
+    textSecondary: '#666666'
   },
   pink: {
     name: '少女粉',
@@ -26,7 +30,9 @@ export const THEMES: { [key: string]: Theme } = {
     success: '#66bb6a',
     warning: '#ffa726',
     danger: '#ef5350',
-    background: '#fff0f5'
+    background: '#fff0f5',
+    text: '#333333',
+    textSecondary: '#666666'
   },
   purple: {
     name: '梦幻紫',
@@ -35,7 +41,9 @@ export const THEMES: { [key: string]: Theme } = {
     success: '#4caf50',
     warning: '#ff9800',
     danger: '#f44336',
-    background: '#faf5ff'
+    background: '#faf5ff',
+    text: '#333333',
+    textSecondary: '#666666'
   },
   green: {
     name: '清新绿',
@@ -44,7 +52,9 @@ export const THEMES: { [key: string]: Theme } = {
     success: '#66bb6a',
     warning: '#ffb74d',
     danger: '#e57373',
-    background: '#f1f8f4'
+    background: '#f1f8f4',
+    text: '#333333',
+    textSecondary: '#666666'
   },
   orange: {
     name: '活力橙',
@@ -53,7 +63,9 @@ export const THEMES: { [key: string]: Theme } = {
     success: '#66bb6a',
     warning: '#ffa726',
     danger: '#ef5350',
-    background: '#fff8f0'
+    background: '#fff8f0',
+    text: '#333333',
+    textSecondary: '#666666'
   },
   dark: {
     name: '暗黑模式',
@@ -62,7 +74,9 @@ export const THEMES: { [key: string]: Theme } = {
     success: '#81c784',
     warning: '#ffb74d',
     danger: '#e57373',
-    background: '#303030'
+    background: '#1e1e1e',
+    text: '#e0e0e0',
+    textSecondary: '#b0b0b0'
   }
 };
 
@@ -74,6 +88,12 @@ export function applyTheme(theme: Theme) {
   root.style.setProperty('--color-warning', theme.warning);
   root.style.setProperty('--color-danger', theme.danger);
   root.style.setProperty('--color-background', theme.background);
+  root.style.setProperty('--color-text', theme.text);
+  root.style.setProperty('--color-text-secondary', theme.textSecondary);
+  
+  // 设置 body 背景色和文字颜色
+  document.body.style.backgroundColor = theme.background;
+  document.body.style.color = theme.text;
   
   // 保存到 localStorage
   localStorage.setItem('theme', JSON.stringify(theme));

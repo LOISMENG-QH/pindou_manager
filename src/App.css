@@ -16,7 +16,7 @@
 
 .header h1 {
   font-size: 28px;
-  color: #333;
+  color: var(--color-text);
 }
 
 .alert-badge {
@@ -54,7 +54,7 @@
 }
 
 .tab:hover {
-  color: #333;
+  color: var(--color-text);
   background: rgba(0, 0, 0, 0.02);
 }
 
