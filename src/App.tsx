@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from './db';
-import { AlertTriangle, Palette, Image } from 'lucide-react';
+import { AlertTriangle, Palette, Image, Settings } from 'lucide-react';
 import BeadManager from './components/BeadManager';
 import PatternManager from './components/PatternManager';
+import SettingsPanel from './components/SettingsPanel';
+import { loadTheme, applyTheme } from './theme';
 import './App.css';
 
 function App() {
-  const [activeTab, setActiveTab] = useState<'beads' | 'patterns'>('beads');
+  const [activeTab, setActiveTab] = useState<'beads' | 'patterns' | 'settings'>('beads');
+  
+  useEffect(() => {
+    // 加载主题
+    const theme = loadTheme();
+    applyTheme(theme);
+  }, []);
 
   const beads = useLiveQuery(() => db.beads.toArray());
   const patterns = useLiveQuery(() => db.patterns.toArray());
@@ -41,11 +49,19 @@ function App() {
           <Image size={18} />
           图纸管理
         </button>
+        <button
+          className={`tab ${activeTab === 'settings' ? 'active' : ''}`}
+          onClick={() => setActiveTab('settings')}
+        >
+          <Settings size={18} />
+          设置
+        </button>
       </div>
 
       <main className="content">
         {activeTab === 'beads' && <BeadManager beads={beads || []} lowStockBeads={lowStockBeads} />}
         {activeTab === 'patterns' && <PatternManager patterns={patterns || []} beads={beads || []} />}
+        {activeTab === 'settings' && <SettingsPanel />}
       </main>
     </div>
   );

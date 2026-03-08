@@ -19,7 +19,7 @@
   gap: 12px;
   padding: 16px;
   background: #fff3cd;
-  border: 1px solid #ffc107;
+  border: 1px solid var(--color-warning);
   border-radius: 8px;
   margin-bottom: 20px;
   color: #856404;
@@ -58,7 +58,7 @@
 
 .form-row input:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
 }
 
 .form-actions {
@@ -78,7 +78,7 @@
 }
 
 .btn-primary {
-  background: #1976d2;
+  background: var(--color-primary);
   color: white;
 }
 
@@ -116,7 +116,7 @@
 }
 
 .bead-card.low-stock {
-  border-color: #ffc107;
+  border-color: var(--color-warning);
   background: #fffbf0;
 }
 
@@ -138,7 +138,7 @@
 
 .color-code {
   background: #e3f2fd;
-  color: #1976d2;
+  color: var(--color-primary);
   padding: 4px 10px;
   border-radius: 4px;
   font-size: 13px;
@@ -155,7 +155,7 @@
 .quantity-control button {
   width: 32px;
   height: 32px;
-  background: #1976d2;
+  background: var(--color-primary);
   color: white;
   border-radius: 6px;
   font-size: 18px;

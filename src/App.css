@@ -25,7 +25,7 @@
   gap: 8px;
   padding: 8px 16px;
   background: #fff3cd;
-  border: 1px solid #ffc107;
+  border: 1px solid var(--color-warning);
   border-radius: 8px;
   color: #856404;
   font-size: 14px;
@@ -59,8 +59,8 @@
 }
 
 .tab.active {
-  color: #1976d2;
-  border-bottom-color: #1976d2;
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
 }
 
 .content {

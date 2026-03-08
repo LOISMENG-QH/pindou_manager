@@ -168,7 +168,7 @@
 }
 
 .upload-area:hover {
-  border-color: #1976d2;
+  border-color: var(--color-primary);
   background: #f0f7ff;
 }
 
@@ -206,7 +206,7 @@
 .modal-content form input:focus,
 .modal-content form textarea:focus {
   outline: none;
-  border-color: #1976d2;
+  border-color: var(--color-primary);
 }
 
 .pattern-view {
